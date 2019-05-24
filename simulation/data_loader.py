@@ -10,6 +10,7 @@ converter = CurrencyConverter(fallback_on_missing_rate=True)
 
 def load_stock_data(first_year, last_year):
     df = _read_stock_csvs(first_year, last_year)
+    del df["Unnamed: 0"]
     df.Date = df.Date.apply(lambda d: _to_date(d))
     _convert_columns_to_eur(df)
     return df

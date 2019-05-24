@@ -9,7 +9,6 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 
 import model
-import market
 import dataframe_util as df_util
 
 
@@ -19,11 +18,35 @@ def make_training_data():
         train = torch.tensor(csv_data[i : i + SEQ_SIZE].values, device=DEVICE).view(
             SEQ_SIZE, BATCH_SIZE, INPUT_DIM
         )
+        # .float()
         target = torch.tensor(
             csv_data[i + SEQ_SIZE : i + SEQ_SIZE + 1].values, device=DEVICE
         ).view(-1)
+        # .float()
+
         training_data.append((train, target))
     return training_data
+
+
+def train(model, training_data, loss_fn, optimiser, batch_size=1):
+    for (
+        train,
+        target,
+    ) in training_data:  # i in range(0, len(training_data) - batch_size, batch_size):
+        # train = torch.tensor([x[0] for x in training_data[i:batch_size]])
+        # target = torch.tensor([x[0] for x in training_data[i:batch_size]])
+        model.zero_grad()
+
+        pred = model.forward(train)
+
+        loss = loss_fn(pred[-1], target[-1])
+        # print("Target", target, "Loss", loss.item())
+
+        optimiser.zero_grad()
+        loss.backward()
+        optimiser.step()
+
+    return loss.item()
 
 
 def predict():
@@ -53,8 +76,6 @@ if __name__ == "__main__":
 
     # Germany: Stock Market, Germany: Currency, Germany: Interest Rate, BGF US Growth A2 {USD}
     csv_data = pandas.read_csv("data.source.csv").iloc[:, 1:-1]
-    print(csv_data.columns)
-    sys.exit(1)
     fund = csv_data[["BGF US Growth A2 {USD}"]]
 
     csv_data.insert(0, "BGF MA 3", df_util.moving_average(fund, 3))
@@ -87,7 +108,6 @@ if __name__ == "__main__":
         batch_size=BATCH_SIZE,
         num_layers=NUM_LAYERS,
     )
-
     model.to(device=DEVICE)
 
     loss_fn = torch.nn.MSELoss(reduction="sum")
@@ -97,8 +117,13 @@ if __name__ == "__main__":
     print(training_data[0][0].shape[0])
 
     real = csv_data.iloc[:, -1]
+    """
+    loss = 0
+    for epoch in range(NUM_EPOCHS):
+        print("Epoch", epoch, "Loss", loss)
+        loss = train(model, training_data, loss_fn, optimiser, batch_size=BATCH_SIZE)
 
-    loss = model.fit(training_data, num_epochs=NUM_EPOCHS)
-
-    predictions = predict()
-    plot(real, predictions)
+        predictions = predict()
+        plot(real, predictions)
+    """
+    plot(real, csv_data[["BGF MA 3"]])
