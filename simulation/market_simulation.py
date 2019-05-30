@@ -19,11 +19,13 @@ class Market:
 
     def run(self, strategies, start_date, training_end_date, end_date):
         for date, row in util.df_iterator(self.df, start_date, training_end_date):
+            print("Trainig date:", date)
             for strategy in strategies:
                 strategy.train(row, date)
 
         result = {strategy: [] for strategy in strategies}
         for date, row in util.df_iterator(self.df, training_end_date, end_date):
+            print("Testing date:", date)
             for strategy in strategies:
                 strategy.execute(row, date)
                 result[strategy].append(self.net_worth(strategy.portfolio, date))
@@ -81,13 +83,11 @@ class Market:
         return portfolio
 
 
-
-def load_default_market():
-    df = data_loader.load_stock_data(2016, 2018)
+def load_market(start, end):
+    df = data_loader.load_stock_data(start, end)
     sn = data_loader.stock_names(df)
 
     return Market(df, sn)
-
 
 
 if __name__ == "__main__":

@@ -28,24 +28,22 @@ def moving_average():
 
 
 if __name__ == "__main__":
-    market = market_simulation.load_default_market()
+    market = market_simulation.load_market(2015, 2018)
 
-    start_date = datetime.date(2017, 1, 1)
-    training_end = datetime.date(2017, 2, 1)
+    start_date = datetime.date(2015, 1, 1)
+    training_end = datetime.date(2015, 2, 1)
     end_date = datetime.date(2017, 11, 2)
 
     strategies = [
         strategy.Inactive("inactive", market),
         strategy.RandomStrategy("random", market),
-        #strategy.SellImmediately("sell", market),
+        strategy.MovingAverage("ma1", market, 1),
+        strategy.MovingAverage("ma5", market, 5),
+        strategy.MovingAverage("ma3", market, 3),
+        # strategy.MovingAverage("ma7", market, 7),
     ]
 
-    result = market.run(
-        strategies,
-        start_date,
-        training_end,
-        end_date,
-    )
+    result = market.run(strategies, start_date, training_end, end_date)
 
     dates = dates_between(training_end, end_date)
 

@@ -1,4 +1,5 @@
 import random
+import collections
 
 
 class Strategy:
@@ -30,17 +31,43 @@ class RandomStrategy(Strategy):
         stock = random.choice(self.market.stock_names)
         max = self.market.max_affordable_amount(self.portfolio, stock, date)
         if max > 0:
-            print("amount", max, "cash", self.portfolio.cash)
             self.market.buy(self.portfolio, stock, max, date)
         else:
             self.market.sell_max(self.portfolio, stock, date)
 
 
-class MovingAverage3(Strategy):
-    def train(self, row, date):
-        self.last_three = {}
-        for stock, value in row.iteritems():
-            self.last_three[stock] = value
+class MovingAverage(Strategy):
+    def __init__(self, name, market, num_days):
+        super(MovingAverage, self).__init__(name, market)
+        self.last_three = {
+            stock: [0.0, collections.deque(maxlen=num_days)]
+            for stock in self.market.stock_names
+        }
+        self.num_days = num_days
 
-    def execute(self, row, current_date):
-        pass
+    def train(self, row, date):
+        for stock, value in row.iteritems():
+            self.last_three[stock][1].append(value)
+            self.last_three[stock][0] = self.moving_average(stock)
+
+    def execute(self, row, date):
+        for stock, value in row.iteritems():
+            self.last_three[stock][1].append(value)
+
+            new_ma = self.moving_average(stock)
+            old_ma = self.last_three[stock][0]
+
+            amount_owned = self.portfolio.stocks[stock]
+            ratio = new_ma / old_ma
+            if ratio > 1.0:
+                max = self.market.max_affordable_amount(self.portfolio, stock, date)
+                to_buy = int(max * (ratio - 1))
+                self.market.buy(self.portfolio, stock, to_buy, date)
+            elif ratio < 1.0:
+                to_sell = amount_owned - int(amount_owned * ratio)
+                self.market.sell(self.portfolio, stock, to_sell, date)
+
+            self.last_three[stock][0] = new_ma
+
+    def moving_average(self, stock):
+        return sum(self.last_three[stock][1]) / self.num_days
